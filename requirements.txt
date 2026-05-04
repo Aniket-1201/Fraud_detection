@@ -10,3 +10,7 @@ dvc
 xgboost
 scikit-learn
 wandb
+
+# API
+fastapi
+uvicorn
