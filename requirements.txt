@@ -1,0 +1,12 @@
+# Data Processing & Validation (Teammate A)
+pandas
+pydantic
+prefect
+
+# Data Version Control
+dvc
+
+# Machine Learning & Tracking (Teammate B)
+xgboost
+scikit-learn
+wandb
