@@ -1,0 +1,5 @@
+outs:
+- md5: 78efc406a02b0699158a6f758841bd33
+  size: 479285
+  hash: md5
+  path: xgb_model.json
