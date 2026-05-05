@@ -1,0 +1,38 @@
+{
+  "os":  "macOS-26.3.1-arm64-arm-64bit",
+  "python":  "CPython 3.9.25",
+  "startedAt":  "2026-05-05T05:42:35.978477Z",
+  "program":  "/Users/atharva/Documents/Fraud_detection/models/train.py",
+  "codePath":  "models/train.py",
+  "codePathLocal":  "train.py",
+  "git":  {
+    "remote":  "https://dagshub.com/aniketdesh004/Fraud_detection.git",
+    "commit":  "54aac3e075d85c63df315f0868cbe9a862889607"
+  },
+  "email":  "atharvaabhyankar4@gmail.com",
+  "root":  "/Users/atharva/Documents/Fraud_detection/models",
+  "host":  "Atharvas-MacBook-Air-3.local",
+  "executable":  "/Users/atharva/miniconda3/envs/fraud-mlops/bin/python",
+  "cpu_count":  8,
+  "cpu_count_logical":  8,
+  "disk":  {
+    "/":  {
+      "total":  "494384795648",
+      "used":  "383069306880"
+    }
+  },
+  "memory":  {
+    "total":  "8589934592"
+  },
+  "apple":  {
+    "name":  "Apple M2",
+    "ecpuCores":  4,
+    "pcpuCores":  4,
+    "gpuCores":  10,
+    "memoryGb":  8,
+    "swapTotalBytes":  "3221225472",
+    "ramTotalBytes":  "8589934592",
+    "macModel":  "Mac14,2"
+  },
+  "writerId":  "mazc13v7e1kxn7cc18cznvszc8oxmqu6"
+}
