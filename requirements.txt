@@ -14,8 +14,3 @@ wandb
 # API
 fastapi
 uvicorn
-
-# Frontend Dashboard 
-streamlit
-plotly
-requests
