@@ -1,0 +1,38 @@
+name: Fraud API CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Grab the code from GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 2. Install Python & DVC
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install DVC
+        run: pip install dvc
+
+      # 3. Authenticate with DagsHub and pull the model
+      - name: Pull Model via DVC
+        env:
+          # We will set this secret in GitHub later
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }} 
+        run: |
+          dvc remote modify origin --local auth basic
+          dvc remote modify origin --local user aniketdesh004
+          dvc remote modify origin --local password $DAGSHUB_TOKEN
+          dvc pull
+
+      # 4. Build the Docker Container to ensure no code is broken
+      - name: Build Docker Image
+        run: docker build -t fraud-api:ci-test .
