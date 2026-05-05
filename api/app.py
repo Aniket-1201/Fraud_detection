@@ -59,9 +59,12 @@ def predict_fraud(transaction: TransactionSchema):
     fraud_probability = ml_model.predict_proba(input_data)[:, 1][0]
     
     # Business Logic
-    status = "DECLINED" if fraud_probability > 0.80 else "APPROVED"
-    alert = "HIGH RISK: Fraud Detected" if status == "DECLINED" else "None"
-    
+    if fraud_probability > 0.005: 
+        status = "DECLINED"
+        alert = "HIGH RISK: Fraud Detected"
+    else:
+        status = "APPROVED"
+        alert = "None"
     # --- NEW: Log the transaction to SQLite ---
     conn = sqlite3.connect("fraud_logs.db")
     cursor = conn.cursor()
