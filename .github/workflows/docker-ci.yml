@@ -23,14 +23,20 @@ jobs:
         run: pip install dvc
 
       # 3. Authenticate with DagsHub and pull the model
-      - name: Pull Model via DVC
+      - name: Pull Data from DagsHub via DVC
         env:
-          # We will set this secret in GitHub later
-          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }} 
+          # This pulls the hidden secrets into the cloud computer's memory
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
+          # 1. Tell DVC to use basic authentication
           dvc remote modify origin --local auth basic
-          dvc remote modify origin --local user aniketdesh004
+          
+          # 2. Inject the username and token into DVC's local configuration
+          dvc remote modify origin --local user $DAGSHUB_USERNAME
           dvc remote modify origin --local password $DAGSHUB_TOKEN
+          
+          # 3. Now that it is authenticated, pull the massive CSV files!
           dvc pull
 
       # 4. Build the Docker Container to ensure no code is broken
