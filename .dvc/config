@@ -1,6 +1,4 @@
 [core]
     remote = myremote
-['remote "myremote"']
-    url = gdrive://1-7TrUwnOvTd26Br4yzNKmVIDNcMcACzZ
 ['remote "origin"']
     url = https://dagshub.com/aniketdesh004/Fraud_detection.dvc
