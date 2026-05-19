@@ -15,7 +15,7 @@ COPY . .
 # We use ARG to catch the secret token from Render, and ENV to expose it to DVC
 ARG DAGSHUB_TOKEN
 ENV DAGSHUB_TOKEN=$DAGSHUB_TOKEN
-RUN dvc pull
+RUN dvc pull --no-scm
 
 # 6. Open the port for the FastAPI web server
 EXPOSE 8000
