@@ -8,8 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 st.set_page_config(page_title="FraudOps Dashboard", page_icon="🛡️", layout="wide")
 
-API_URL = "http://127.0.0.1:8000/predict"
-
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 CUSTOM_THRESHOLD = float(os.getenv("CUSTOM_THRESHOLD", 0.005))
 
@@ -89,7 +88,7 @@ with tab_single:
         
         with st.spinner("Analyzing..."):
             try:
-                response = requests.post(API_URL, json=payload)
+                response = requests.post(f"{API_URL}/predict", json=payload)
                 if response.status_code == 200:
                     result = response.json()
                     # Apply our strict UI threshold
@@ -120,7 +119,7 @@ with tab_batch:
                 for index, row in batch_df.iterrows():
                     payload = row.to_dict() 
                     try:
-                        response = requests.post(API_URL, json=payload)
+                        response = requests.post(f"{API_URL}/predict", json=payload)
                         if response.status_code == 200:
                             res_data = response.json()
                             
