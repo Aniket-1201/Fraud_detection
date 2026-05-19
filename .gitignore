@@ -4,3 +4,10 @@
 wandb/
 models/wandb/
 *.db
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Reports and Logs
+*.html
+*.log
