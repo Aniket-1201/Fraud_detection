@@ -12,7 +12,6 @@ print("Loading engineered data...")
 df = pd.read_csv("../data/engineered_creditcard.csv")
 
 # 3. Prepare features (X) and target (y)
-# (Assuming Aniket kept the target column named 'Class')
 X = df.drop(columns=["Class"])
 y = df["Class"]
 

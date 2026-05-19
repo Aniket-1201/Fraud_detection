@@ -3,13 +3,15 @@ import sqlite3
 import pandas as pd
 import requests
 import plotly.express as px
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 st.set_page_config(page_title="FraudOps Dashboard", page_icon="🛡️", layout="wide")
 
 API_URL = "http://127.0.0.1:8000/predict"
 
-# 1. We declare our strict threshold globally so the whole app uses it!
-CUSTOM_THRESHOLD = 0.005 
+
+CUSTOM_THRESHOLD = float(os.getenv("CUSTOM_THRESHOLD", 0.005))
 
 def load_data():
     """Loads logs and forces the Database to respect our strict UI threshold!"""
