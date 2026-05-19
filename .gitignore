@@ -4,3 +4,4 @@
 wandb/
 models/wandb/
 *.db
+*.html
