@@ -6,17 +6,22 @@ WORKDIR /app
 
 # 3. Copy only requirements first (to leverage Docker caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Copy the entire project (This brings in your api, pipeline, AND the .dvc configuration files)
+# NEW: Install git! 'python:slim' doesn't have it, and DVC secretly needs it.
+RUN apt-get update && apt-get install -y git && \
+    pip install --no-cache-dir -r requirements.txt
+
+# 4. Copy the entire project
 COPY . .
 
 # 5. MLOps Magic: Pull the actual ML model from DagsHub
-# We use ARG to catch the secret token from Render, and ENV to expose it to DVC
+ARG DAGSHUB_USERNAME
 ARG DAGSHUB_TOKEN
-ENV DAGSHUB_TOKEN=$DAGSHUB_TOKEN
-RUN dvc pull --no-scm
 
+# THE SILVER BULLET: Inject credentials directly into the URL!
+RUN dvc remote modify origin url https://${DAGSHUB_USERNAME}:${DAGSHUB_TOKEN}@dagshub.com/aniketdesh004/Fraud_detection.dvc && \
+    dvc pull
+    
 # 6. Open the port for the FastAPI web server
 EXPOSE 8000
 
