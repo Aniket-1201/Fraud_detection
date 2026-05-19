@@ -5,3 +5,6 @@ wandb/
 models/wandb/
 *.db
 *.html
+__pycache__/
+*.py[cod]
+*$py.class
