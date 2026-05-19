@@ -12,11 +12,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 5. MLOps Magic: Pull the actual ML model from DagsHub
-# We use ARG to catch the secret token from Render, and ENV to expose it to DVC
+ARG DAGSHUB_USERNAME
 ARG DAGSHUB_TOKEN
-ENV DAGSHUB_TOKEN=$DAGSHUB_TOKEN
-RUN dvc pull --no-scm
 
+ENV DAGSHUB_USERNAME=$DAGSHUB_USERNAME
+ENV DAGSHUB_TOKEN=$DAGSHUB_TOKEN
+
+# Configure DVC inside the container, then pull
+RUN dvc remote modify origin --local auth basic && \
+    dvc remote modify origin --local user $DAGSHUB_USERNAME && \
+    dvc remote modify origin --local password $DAGSHUB_TOKEN && \
+    dvc pull --no-scm
+    
 # 6. Open the port for the FastAPI web server
 EXPOSE 8000
 

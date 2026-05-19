@@ -43,4 +43,4 @@ jobs:
 
       # 5. Build the Docker Container to ensure no infrastructure code is broken
       - name: Build Docker Image
-        run: docker build --build-arg DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }} -t fraud-api:ci-test .
+        run: docker build --build-arg DAGSHUB_USERNAME=${{ secrets.DAGSHUB_USERNAME }} --build-arg DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }} -t fraud-api:ci-test .
