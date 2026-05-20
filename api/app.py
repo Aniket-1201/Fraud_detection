@@ -81,3 +81,20 @@ def predict_fraud(transaction: TransactionSchema):
         "alert": alert,
         "probability_score": float(fraud_probability)
     }
+@app.get("/logs")
+def get_logs():
+    """API Endpoint for the frontend to fetch logs safely."""
+    try:
+        conn = sqlite3.connect("fraud_logs.db")
+        # This makes sqlite return dictionaries instead of raw tuples!
+        conn.row_factory = sqlite3.Row 
+        cursor = conn.cursor()
+        # Fetch the latest transactions
+        cursor.execute("SELECT * FROM transactions ORDER BY id DESC LIMIT 100")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Send the data over the internet as JSON
+        return {"logs": [dict(row) for row in rows]}
+    except Exception as e:
+        return {"logs": []}

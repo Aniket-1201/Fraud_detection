@@ -1,35 +1,32 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
 import requests
 import plotly.express as px
 import os
 from dotenv import load_dotenv
+
+# REMOVED: import sqlite3
+# REMOVED: CUSTOM_THRESHOLD logic. The backend makes the decisions now!
+
 load_dotenv()
 st.set_page_config(page_title="FraudOps Dashboard", page_icon="🛡️", layout="wide")
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
-CUSTOM_THRESHOLD = float(os.getenv("CUSTOM_THRESHOLD", 0.005))
-
 def load_data():
-    """Loads logs and forces the Database to respect our strict UI threshold!"""
+    """Fetches logs safely over the internet from the FastAPI backend."""
     try:
-        conn = sqlite3.connect("fraud_logs.db")
-        df = pd.read_sql_query("SELECT * FROM transactions", conn)
-        conn.close()
-        
-        if not df.empty:
-            # If the DB logged the probability score, we recalculate the status right here!
-            if 'probability_score' in df.columns:
-                df['status'] = df['probability_score'].apply(
-                    lambda x: "ALERT" if float(x) > CUSTOM_THRESHOLD else "SAFE"
-                )
-            # Fallback just in case
-            elif 'status' in df.columns:
-                df['status'] = df['status'].replace({"APPROVED": "SAFE", "DECLINED": "ALERT"})
-                
-        return df
+        # THE FIX: Ask the API for the logs instead of looking for a local file
+        response = requests.get(f"{API_URL}/logs")
+        if response.status_code == 200:
+            logs = response.json().get("logs", [])
+            if logs:
+                df = pd.DataFrame(logs)
+                # Standardize backend terms (APPROVED/DECLINED) to UI colors (SAFE/ALERT)
+                if 'status' in df.columns:
+                    df['status'] = df['status'].replace({"APPROVED": "SAFE", "DECLINED": "ALERT"})
+                return df
+        return pd.DataFrame()
     except Exception as e:
         return pd.DataFrame() 
 
@@ -50,7 +47,7 @@ if not df.empty:
     col2.metric("Alerts", fraud_caught)
     col3.metric("Current Alert Rate", f"{fraud_rate:.2f}%")
 else:
-    st.info("The database is currently empty. Send a test transaction using the sidebar!")
+    st.info("The database is currently empty or loading. Send a test transaction using the sidebar!")
 
 st.divider()
 
@@ -91,14 +88,15 @@ with tab_single:
                 response = requests.post(f"{API_URL}/predict", json=payload)
                 if response.status_code == 200:
                     result = response.json()
-                    # Apply our strict UI threshold
-                    display_status = "ALERT" if result["probability_score"] > CUSTOM_THRESHOLD else "SAFE"
+                    
+                    # THE FIX: Rely entirely on the backend's decision!
+                    display_status = "ALERT" if result["status"] == "DECLINED" else "SAFE"
                     
                     if display_status == "ALERT":
                         st.error(f"🚨 ALERT! AI Confidence: {result['probability_score']:.4f}")
                     else:
                         st.success(f"✅ SAFE. AI Confidence: {result['probability_score']:.4f}")
-                    st.rerun() # Refresh the page to update the charts!
+                    st.rerun()
                 else:
                     st.error("API Error: Check if server is running!")
             except Exception as e:
@@ -123,7 +121,9 @@ with tab_batch:
                         if response.status_code == 200:
                             res_data = response.json()
                             
-                            display_status = "ALERT" if res_data["probability_score"] > CUSTOM_THRESHOLD else "SAFE"
+                            # THE FIX: Rely entirely on the backend's decision!
+                            display_status = "ALERT" if res_data["status"] == "DECLINED" else "SAFE"
+                            
                             results.append({
                                 "ID": index,
                                 "Amount": payload.get("Amount", 0),
@@ -134,11 +134,10 @@ with tab_batch:
                         st.error(f"API connection failed on row {index}.")
                         break
                 
-                # 2. Save the results into Streamlit's temporary memory, then refresh the page!
                 st.session_state['batch_results'] = pd.DataFrame(results)
                 st.rerun()
 
-# --- BOTTOM ROW: BATCH RESULTS (Moved out of sidebar!) ---
+# --- BOTTOM ROW: BATCH RESULTS ---
 if 'batch_results' in st.session_state and not st.session_state['batch_results'].empty:
     st.divider()
     st.subheader("📁 Latest Batch Scan Results")
