@@ -16,3 +16,8 @@ fastapi
 uvicorn
 
 python-dotenv
+
+#deploy
+streamlit
+requests
+plotly
