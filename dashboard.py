@@ -65,77 +65,40 @@ with col_data:
     st.subheader("Recent Audit Logs")
     if not df.empty:
         st.dataframe(df.sort_values(by="id", ascending=False).head(10), use_container_width=True)
-
 # --- SIDEBAR: CONTROLS ---
 st.sidebar.title("⚙️ Control Panel")
-tab_single, tab_batch = st.sidebar.tabs(["💳 Single Swipe", "📁 Batch Scan"])
+st.sidebar.markdown("### 📁 Batch Processing")
+st.sidebar.markdown("Upload a transaction CSV containing full PCA features (V1-V28), Amount, and Transaction_Hour.")
 
-# --- TAB 1: SINGLE TRANSACTION ---
-with tab_single:
-    st.markdown("Simulate a single transaction.")
-    with st.form("swipe_form"):
-        test_amount = st.number_input("Transaction Amount ($)", min_value=0.0, value=150.0)
-        test_hour = st.slider("Transaction Hour (0-23)", 0, 23, 14)
-        submit_button = st.form_submit_button(label="Swipe Card")
+uploaded_file = st.sidebar.file_uploader("Upload Transaction CSV", type=["csv"])
 
-    if submit_button:
-        payload = {f"V{i}": 0.0 for i in range(1, 29)}
-        payload["Amount"] = test_amount
-        payload["Transaction_Hour"] = test_hour
-        
-        with st.spinner("Analyzing..."):
-            try:
-                response = requests.post(f"{API_URL}/predict", json=payload)
-                if response.status_code == 200:
-                    result = response.json()
-                    
-                    # THE FIX: Rely entirely on the backend's decision!
-                    display_status = "ALERT" if result["status"] == "DECLINED" else "SAFE"
-                    
-                    if display_status == "ALERT":
-                        st.error(f"🚨 ALERT! AI Confidence: {result['probability_score']:.4f}")
-                    else:
-                        st.success(f"✅ SAFE. AI Confidence: {result['probability_score']:.4f}")
-                    st.rerun()
-                else:
-                    st.error("API Error: Check if server is running!")
-            except Exception as e:
-                st.error("Failed to connect.")
-
-# --- TAB 2: BATCH PROCESSING ---
-with tab_batch:
-    st.markdown("Upload a CSV of transactions.")
-    uploaded_file = st.file_uploader("Upload Transaction CSV", type=["csv"])
-
-    if uploaded_file is not None:
-        batch_df = pd.read_csv(uploaded_file)
-        st.success(f"Loaded {len(batch_df)} transactions!")
-        
-        if st.button("Run Batch Scan"):
-            with st.spinner("Scanning batch for fraud..."):
-                results = []
-                for index, row in batch_df.iterrows():
-                    payload = row.to_dict() 
-                    try:
-                        response = requests.post(f"{API_URL}/predict", json=payload)
-                        if response.status_code == 200:
-                            res_data = response.json()
-                            
-                            # THE FIX: Rely entirely on the backend's decision!
-                            display_status = "ALERT" if res_data["status"] == "DECLINED" else "SAFE"
-                            
-                            results.append({
-                                "ID": index,
-                                "Amount": payload.get("Amount", 0),
-                                "Status": display_status,
-                                "Confidence": res_data["probability_score"]
-                            })
-                    except Exception as e:
-                        st.error(f"API connection failed on row {index}.")
-                        break
-                
-                st.session_state['batch_results'] = pd.DataFrame(results)
-                st.rerun()
+if uploaded_file is not None:
+    batch_df = pd.read_csv(uploaded_file)
+    st.sidebar.success(f"Loaded {len(batch_df)} transactions!")
+    
+    if st.sidebar.button("Run Batch Scan"):
+        with st.spinner("Scanning batch for fraud..."):
+            results = []
+            for index, row in batch_df.iterrows():
+                payload = row.to_dict() 
+                try:
+                    response = requests.post(f"{API_URL}/predict", json=payload)
+                    if response.status_code == 200:
+                        res_data = response.json()
+                        display_status = "ALERT" if res_data["status"] == "DECLINED" else "SAFE"
+                        
+                        results.append({
+                            "ID": index,
+                            "Amount": payload.get("Amount", 0),
+                            "Status": display_status,
+                            "Confidence": res_data["probability_score"]
+                        })
+                except Exception as e:
+                    st.sidebar.error(f"API connection failed on row {index}.")
+                    break
+            
+            st.session_state['batch_results'] = pd.DataFrame(results)
+            st.rerun()
 
 # --- BOTTOM ROW: BATCH RESULTS ---
 if 'batch_results' in st.session_state and not st.session_state['batch_results'].empty:
