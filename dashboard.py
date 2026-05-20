@@ -1,35 +1,32 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
 import requests
 import plotly.express as px
 import os
 from dotenv import load_dotenv
+
+# REMOVED: import sqlite3
+# REMOVED: CUSTOM_THRESHOLD logic. The backend makes the decisions now!
+
 load_dotenv()
 st.set_page_config(page_title="FraudOps Dashboard", page_icon="🛡️", layout="wide")
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
-CUSTOM_THRESHOLD = float(os.getenv("CUSTOM_THRESHOLD", 0.005))
-
 def load_data():
-    """Loads logs and forces the Database to respect our strict UI threshold!"""
+    """Fetches logs safely over the internet from the FastAPI backend."""
     try:
-        conn = sqlite3.connect("fraud_logs.db")
-        df = pd.read_sql_query("SELECT * FROM transactions", conn)
-        conn.close()
-        
-        if not df.empty:
-            # If the DB logged the probability score, we recalculate the status right here!
-            if 'probability_score' in df.columns:
-                df['status'] = df['probability_score'].apply(
-                    lambda x: "ALERT" if float(x) > CUSTOM_THRESHOLD else "SAFE"
-                )
-            # Fallback just in case
-            elif 'status' in df.columns:
-                df['status'] = df['status'].replace({"APPROVED": "SAFE", "DECLINED": "ALERT"})
-                
-        return df
+        # THE FIX: Ask the API for the logs instead of looking for a local file
+        response = requests.get(f"{API_URL}/logs")
+        if response.status_code == 200:
+            logs = response.json().get("logs", [])
+            if logs:
+                df = pd.DataFrame(logs)
+                # Standardize backend terms (APPROVED/DECLINED) to UI colors (SAFE/ALERT)
+                if 'status' in df.columns:
+                    df['status'] = df['status'].replace({"APPROVED": "SAFE", "DECLINED": "ALERT"})
+                return df
+        return pd.DataFrame()
     except Exception as e:
         return pd.DataFrame() 
 
@@ -50,7 +47,7 @@ if not df.empty:
     col2.metric("Alerts", fraud_caught)
     col3.metric("Current Alert Rate", f"{fraud_rate:.2f}%")
 else:
-    st.info("The database is currently empty. Send a test transaction using the sidebar!")
+    st.info("The database is currently empty or loading. Send a test transaction using the sidebar!")
 
 st.divider()
 
@@ -68,77 +65,42 @@ with col_data:
     st.subheader("Recent Audit Logs")
     if not df.empty:
         st.dataframe(df.sort_values(by="id", ascending=False).head(10), use_container_width=True)
-
 # --- SIDEBAR: CONTROLS ---
 st.sidebar.title("⚙️ Control Panel")
-tab_single, tab_batch = st.sidebar.tabs(["💳 Single Swipe", "📁 Batch Scan"])
+st.sidebar.markdown("### 📁 Batch Processing")
+st.sidebar.markdown("Upload a transaction CSV containing full PCA features (V1-V28), Amount, and Transaction_Hour.")
 
-# --- TAB 1: SINGLE TRANSACTION ---
-with tab_single:
-    st.markdown("Simulate a single transaction.")
-    with st.form("swipe_form"):
-        test_amount = st.number_input("Transaction Amount ($)", min_value=0.0, value=150.0)
-        test_hour = st.slider("Transaction Hour (0-23)", 0, 23, 14)
-        submit_button = st.form_submit_button(label="Swipe Card")
+uploaded_file = st.sidebar.file_uploader("Upload Transaction CSV", type=["csv"])
 
-    if submit_button:
-        payload = {f"V{i}": 0.0 for i in range(1, 29)}
-        payload["Amount"] = test_amount
-        payload["Transaction_Hour"] = test_hour
-        
-        with st.spinner("Analyzing..."):
-            try:
-                response = requests.post(f"{API_URL}/predict", json=payload)
-                if response.status_code == 200:
-                    result = response.json()
-                    # Apply our strict UI threshold
-                    display_status = "ALERT" if result["probability_score"] > CUSTOM_THRESHOLD else "SAFE"
-                    
-                    if display_status == "ALERT":
-                        st.error(f"🚨 ALERT! AI Confidence: {result['probability_score']:.4f}")
-                    else:
-                        st.success(f"✅ SAFE. AI Confidence: {result['probability_score']:.4f}")
-                    st.rerun() # Refresh the page to update the charts!
-                else:
-                    st.error("API Error: Check if server is running!")
-            except Exception as e:
-                st.error("Failed to connect.")
+if uploaded_file is not None:
+    batch_df = pd.read_csv(uploaded_file)
+    st.sidebar.success(f"Loaded {len(batch_df)} transactions!")
+    
+    if st.sidebar.button("Run Batch Scan"):
+        with st.spinner("Scanning batch for fraud..."):
+            results = []
+            for index, row in batch_df.iterrows():
+                payload = row.to_dict() 
+                try:
+                    response = requests.post(f"{API_URL}/predict", json=payload)
+                    if response.status_code == 200:
+                        res_data = response.json()
+                        display_status = "ALERT" if res_data["status"] == "DECLINED" else "SAFE"
+                        
+                        results.append({
+                            "ID": index,
+                            "Amount": payload.get("Amount", 0),
+                            "Status": display_status,
+                            "Confidence": res_data["probability_score"]
+                        })
+                except Exception as e:
+                    st.sidebar.error(f"API connection failed on row {index}.")
+                    break
+            
+            st.session_state['batch_results'] = pd.DataFrame(results)
+            st.rerun()
 
-# --- TAB 2: BATCH PROCESSING ---
-with tab_batch:
-    st.markdown("Upload a CSV of transactions.")
-    uploaded_file = st.file_uploader("Upload Transaction CSV", type=["csv"])
-
-    if uploaded_file is not None:
-        batch_df = pd.read_csv(uploaded_file)
-        st.success(f"Loaded {len(batch_df)} transactions!")
-        
-        if st.button("Run Batch Scan"):
-            with st.spinner("Scanning batch for fraud..."):
-                results = []
-                for index, row in batch_df.iterrows():
-                    payload = row.to_dict() 
-                    try:
-                        response = requests.post(f"{API_URL}/predict", json=payload)
-                        if response.status_code == 200:
-                            res_data = response.json()
-                            
-                            display_status = "ALERT" if res_data["probability_score"] > CUSTOM_THRESHOLD else "SAFE"
-                            results.append({
-                                "ID": index,
-                                "Amount": payload.get("Amount", 0),
-                                "Status": display_status,
-                                "Confidence": res_data["probability_score"]
-                            })
-                    except Exception as e:
-                        st.error(f"API connection failed on row {index}.")
-                        break
-                
-                # 2. Save the results into Streamlit's temporary memory, then refresh the page!
-                st.session_state['batch_results'] = pd.DataFrame(results)
-                st.rerun()
-
-# --- BOTTOM ROW: BATCH RESULTS (Moved out of sidebar!) ---
+# --- BOTTOM ROW: BATCH RESULTS ---
 if 'batch_results' in st.session_state and not st.session_state['batch_results'].empty:
     st.divider()
     st.subheader("📁 Latest Batch Scan Results")
