@@ -4,13 +4,21 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - '**.md'          # Ignores README and any other markdown files
-      - '.gitignore'     # Ignores gitignore changes
+      - '**.md'          
+      - '.gitignore'
+      - '**.png'         # Added to push!
+      - '**.jpg'         # Added to push!
+      - '**.jpeg'        # Added to push!
+      - '**.svg'         # Added to push!
   pull_request:
     branches: [ "main" ]
     paths-ignore:
-      - '**.md'
+      - '**.md'          
       - '.gitignore'
+      - '**.png'         
+      - '**.jpg'         
+      - '**.jpeg'
+      - '**.svg'
 
 jobs:
   build-and-test:
