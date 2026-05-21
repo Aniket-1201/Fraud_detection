@@ -3,8 +3,14 @@ name: Fraud API CI/CD Pipeline
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.md'          # Ignores README and any other markdown files
+      - '.gitignore'     # Ignores gitignore changes
   pull_request:
-    branches: [ "main" ] # This runs the tests whenever you open a PR!
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
 
 jobs:
   build-and-test:
