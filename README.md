@@ -12,7 +12,9 @@
 **Live Application:** [View the Streamlit Command Center Here](https://frauddetection-ffeqnn9bpxyetcqreodepk.streamlit.app/)  
 **API Endpoint:** [View the Render Backend Docs Here](https://fraud-detection-feod.onrender.com/docs)
 
-<img style="max-width: 100%; height: auto;" alt="Architecture Diagram" src="https://github.com/user-attachments/assets/103b019e-a21f-49b0-934c-5ac261aa05a8" />
+
+<img width="1024" height="179" alt="image" src="https://github.com/user-attachments/assets/9f96ff12-b4d7-4f40-bd4c-6732ea5dce85" />
+
 
 </div>
 
